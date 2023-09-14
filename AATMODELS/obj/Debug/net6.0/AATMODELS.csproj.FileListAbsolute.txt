@@ -1,0 +1,11 @@
+D:\Honors Sthe\AAT\AATMODELS\bin\Debug\net6.0\AATMODELS.deps.json
+D:\Honors Sthe\AAT\AATMODELS\bin\Debug\net6.0\AATMODELS.dll
+D:\Honors Sthe\AAT\AATMODELS\bin\Debug\net6.0\AATMODELS.pdb
+D:\Honors Sthe\AAT\AATMODELS\obj\Debug\net6.0\AATMODELS.GeneratedMSBuildEditorConfig.editorconfig
+D:\Honors Sthe\AAT\AATMODELS\obj\Debug\net6.0\AATMODELS.AssemblyInfoInputs.cache
+D:\Honors Sthe\AAT\AATMODELS\obj\Debug\net6.0\AATMODELS.AssemblyInfo.cs
+D:\Honors Sthe\AAT\AATMODELS\obj\Debug\net6.0\AATMODELS.csproj.CoreCompileInputs.cache
+D:\Honors Sthe\AAT\AATMODELS\obj\Debug\net6.0\AATMODELS.dll
+D:\Honors Sthe\AAT\AATMODELS\obj\Debug\net6.0\refint\AATMODELS.dll
+D:\Honors Sthe\AAT\AATMODELS\obj\Debug\net6.0\AATMODELS.pdb
+D:\Honors Sthe\AAT\AATMODELS\obj\Debug\net6.0\ref\AATMODELS.dll

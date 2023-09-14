@@ -1,0 +1,93 @@
+﻿@page "/landingpage"
+@using System.Net.Http.Json
+@using AATMODELS.DTOs
+@using System.Net.Http
+@using System.Text.Json
+@using System.Net.Http.Headers
+
+<h3>Available Events</h3>
+
+@inject HttpClient HttpClient
+
+@if (events == null)
+{
+    <p>Loading events...</p>
+}
+else if (events.Count == 0)
+{
+    <p>No events available.</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Date</th>
+                <th>Total Seats</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var availableEvent in events)
+            {
+                var registrationsForEvent = registrationsCount.ContainsKey(availableEvent.Id) ? registrationsCount[availableEvent.Id] : 0;
+                var remainingSeats = availableEvent.TotalSeats - registrationsForEvent;
+
+                <tr>
+                    <td>@availableEvent.Name</td>
+                    <td>@availableEvent.Date.ToShortDateString()</td>
+                    <td>@availableEvent.TotalSeats</td>
+                    <td>
+                        @if (remainingSeats > 0)
+                        {
+                            <!-- Link to the event registration page for available events -->
+                            <a href="/eventregistration/@availableEvent.Id">Register</a>
+                        }
+                        else
+                        {
+                            <p>Fully Booked</p>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<EventDto> events;
+    private Dictionary<int, int> registrationsCount = new Dictionary<int, int>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Fetch and populate the list of available events from the API using HttpClient
+            events = await HttpClient.GetFromJsonAsync<List<EventDto>>("https://localhost:7092/api/events");
+
+            // Fetch the count of registrations for each event
+            var registrations = await HttpClient.GetFromJsonAsync<List<RegistrationDto>>("https://localhost:7092/api/registrations");
+
+
+            foreach (var registration in registrations)
+            {
+                if (registrationsCount.ContainsKey(registration.EventId))
+                {
+                    registrationsCount[registration.EventId]++;
+                }
+                else
+                {
+                    registrationsCount[registration.EventId] = 1;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle exceptions as needed
+            Console.WriteLine($"Error: {ex.Message}");
+
+            // You can log the error or display an error message to the user
+        }
+    }
+}

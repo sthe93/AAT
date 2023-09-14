@@ -1,0 +1,171 @@
+﻿@page "/eventregistration/{eventId:int}"
+@using AATMODELS.DTOs
+@using AAT.Services
+@using Microsoft.AspNetCore.Http;
+@using System.Text;
+@using System.Threading.Tasks
+
+@inject EventRegistrationClientService RegistrationService
+@inject ILogger<EventRegistration> Logger
+@inject IHttpContextAccessor HttpContextAccessor
+
+<h3>Event Registration</h3>
+
+@if (eventInfo == null)
+{
+    <p>Loading event information...</p>
+}
+else
+{
+    <p>Name: @eventInfo.Name</p>
+    <p>Date: @eventInfo.Date.ToShortDateString()</p>
+    <p>Total Seats: @eventInfo.TotalSeats</p>
+    <p>Remaining Seats: @remainingSeats</p>
+
+    <!-- Registration form goes here -->
+    <EditForm Model="registration" OnValidSubmit="RegisterForEvent">
+        <DataAnnotationsValidator />
+        <div class="form-group">
+            <label for="name">Name:</label>
+            <InputText id="name" @bind-Value="registration.Name" class="form-control" />
+            <ValidationMessage For="@(() => registration.Name)" />
+        </div>
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <InputText id="email" @bind-Value="registration.Email" class="form-control" />
+            <ValidationMessage For="@(() => registration.Email)" />
+        </div>
+        <button type="submit" class="btn btn-primary">Register</button>
+    </EditForm>
+
+    <!-- Display the loading indicator -->
+    @if (eventInfo == null)
+    {
+        <p>Loading event information...</p>
+    }
+
+    <!-- Display registration success message -->
+    @if (registrationSuccess)
+    {
+        <p class="text-success">Registration successful! You are registered for this event.</p>
+    }
+
+    <!-- Display the error message -->
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <p class="text-danger">@errorMessage</p>
+    }
+}
+
+@code {
+    [Parameter]
+    public int EventId { get; set; }
+
+    private EventDto eventInfo;
+    private int remainingSeats;
+    private RegistrationDto registration = new RegistrationDto();
+    private bool registrationSuccess = false;
+    private string errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Fetch event information and calculate remaining seats
+            eventInfo = await RegistrationService.GetEventInfo(EventId);
+            var registrations = await RegistrationService.GetEventRegistrations(EventId);
+            remainingSeats = eventInfo.TotalSeats - registrations.Count;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnInitializedAsync");
+            errorMessage = "An error occurred while fetching event information.";
+        }
+    }
+
+    private async Task RegisterForEvent()
+    {
+        try
+        {
+            // Generate a unique session token
+            var sessionToken = GenerateSessionToken();
+
+            // Store the session token in the user's session
+            var sessionTokenBytes = Encoding.UTF8.GetBytes(sessionToken);
+            HttpContextAccessor.HttpContext.Session.Set("SessionToken", sessionTokenBytes);
+
+            // Fetch event information again (in case it changed) before registration
+            var @event = await RegistrationService.GetEventInfo(EventId);
+
+            // Check if the event is still available
+            if (@event == null)
+            {
+                errorMessage = "Event not found.";
+                return;
+            }
+
+            // Check if there are remaining seats
+            if (remainingSeats <= 0)
+            {
+                errorMessage = "Event is fully booked.";
+                return;
+            }
+
+            // Convert sessionToken to a Guid
+            if (!Guid.TryParse(sessionToken, out Guid sessionTokenGuid))
+            {
+                errorMessage = "Invalid session token.";
+                return;
+            }
+
+            // Check if the user with the same session token is already registered for the event
+            var isUserRegistered = await RegistrationService.CheckUserRegistration(EventId, sessionTokenGuid);
+
+            if (isUserRegistered)
+            {
+                errorMessage = "You have already registered for this event.";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(registration.Name) || string.IsNullOrWhiteSpace(registration.Email))
+            {
+                errorMessage = "Name and Email are required.";
+                return;
+            }
+
+            // Generate a unique ReferenceNumber
+            registration.ReferenceNumber = GenerateUniqueReferenceNumber();
+
+            // Register the user for the event
+            var result = await RegistrationService.RegisterForEvent(registration);
+
+            if (result != null)
+            {
+                registrationSuccess = true;
+            }
+            else
+            {
+                errorMessage = "An error occurred during registration.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in RegisterForEvent");
+            errorMessage = "An error occurred while registering for the event.";
+        }
+    }
+
+    private string GenerateSessionToken()
+    {
+        return Guid.NewGuid().ToString();
+    }
+
+    private string GenerateUniqueReferenceNumber()
+    {
+        // Generate a timestamp-based unique reference number
+        string timestamp = DateTime.Now.ToString("yyyyMMddHHmmssfff");
+        int randomNum = new Random().Next(1000, 9999);
+        string referenceNumber = timestamp + randomNum.ToString();
+        return referenceNumber;
+    }
+}
